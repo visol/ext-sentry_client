@@ -20,7 +20,7 @@ class ClientProvider
             $client->user_context(static::getUserContext());
             $client->tags_context(static::getTagsContext());
 
-            $errorHandler = new \Raven_ErrorHandler($client, true);
+            $errorHandler = new \Raven_ErrorHandler($client, true, static::getErrorMask());
             $errorHandler->registerExceptionHandler();
             $errorHandler->registerShutdownFunction();
 
@@ -45,6 +45,14 @@ class ClientProvider
         }
 
         return '';
+    }
+
+    /**
+     * @return int
+     */
+    private static function getErrorMask()
+    {
+        return intval($GLOBALS['TYPO3_CONF_VARS']['SYS']['errorHandlerErrors']);
     }
 
     /**
