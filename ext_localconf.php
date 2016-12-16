@@ -20,18 +20,6 @@ call_user_func(
                 require_once $extPath . 'Classes/ClientProvider.php';
 
                 \Iresults\SentryClient\ClientProvider::createClient();
-
-//                $GLOBALS['TYPO3_CONF_VARS']['SYS']['debugExceptionHandler'] = \Iresults\SentryClient\DebugExceptionHandler::class;
-//                $GLOBALS['TYPO3_CONF_VARS']['SYS']['productionExceptionHandler'] = \Iresults\SentryClient\ProductionExceptionHandler::class;
-//                $GLOBALS['TYPO3_CONF_VARS']['SYS']['errorHandler'] = \Iresults\SentryClient\DebugExceptionHandler::class;
-
-
-//                $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects']['TYPO3\\CMS\\Frontend\\ContentObject\\Exception\\ProductionExceptionHandler'] = array(
-//                    'className' => \Iresults\SentryClient\DebugExceptionHandler::class,
-//                );
-//                $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects']['TYPO3\\CMS\\Frontend\\ContentObject\\Exception\\DebugExceptionHandler'] = array(
-//                    'className' => \Iresults\SentryClient\DebugExceptionHandler::class,
-//                );
             }
         }
     }
