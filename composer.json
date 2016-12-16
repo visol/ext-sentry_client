@@ -1,0 +1,30 @@
+{
+    "name": "lemming/sentry_client",
+    "description": "TYPO3 Extension for exception logging with sentry, see http://www.getsentry.com",
+    "type": "typo3-cms-extension",
+    "require": {
+        "typo3/cms-core": ">=6.2.0,<8.9.99"
+    },
+    "license": [
+        "GPL-2.0+"
+    ],
+    "authors": [
+        {
+            "name": "Christoph Lehmann",
+            "email": "christoph.lehmann@networkteam.com"
+        },
+        {
+            "name": "Daniel Corn",
+            "email": "daniel@iresults.li"
+        }
+    ],
+    "replace": {
+        "sentry_client": "self.version",
+        "typo3-ter/sentry_client": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "Iresults\\SentryClient\\": "Classes"
+        }
+    }
+}

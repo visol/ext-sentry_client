@@ -1,31 +1,37 @@
 <?php
-
 if (!defined('TYPO3_MODE')) {
-	die('Access denied.');
+    die('Access denied.');
 }
 
-if (!function_exists('register_client')) {
-	function register_client() {
-		$ravenPath = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('sentry_client') . 'vendor/raven/lib/Raven';
-		require_once($ravenPath . '/Autoloader.php');
-		\Raven_Autoloader::register();
-		$client = new \Lemming\SentryClient\Client();
-		$errorHandler = new Raven_ErrorHandler($client, TRUE);
-		$errorHandler->registerExceptionHandler();
-		$errorHandler->registerShutdownFunction();
-	}
-}
+call_user_func(
+    function () {
+        $confVars = $GLOBALS['TYPO3_CONF_VARS'];
+        if (isset($confVars['EXT']['extConf']['sentry_client'])) {
+            $configuration = @unserialize($confVars['EXT']['extConf']['sentry_client']);
+            $dsn = (is_array($configuration) && isset($configuration['dsn'])) ? trim($configuration['dsn']) : '';
 
-if (isset($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['sentry_client'])) {
-	$configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['sentry_client']);
-	if (isset($configuration['dsn']) && $configuration['dsn'] != '') {
+            if ($dsn === '') {
+                return;
+            }
 
-		if (isset($configuration['productionOnly']) && (bool)$configuration['productionOnly'] === TRUE) {
-			if (\TYPO3\CMS\Core\Utility\GeneralUtility::getApplicationContext()->isProduction()) {
-				register_client();
-			}
-		} else {
-			register_client();
-		}
-	}
-}
+            $productionOnly = isset($configuration['productionOnly']) && (bool)$configuration['productionOnly'] === true;
+            if (!$productionOnly || \TYPO3\CMS\Core\Utility\GeneralUtility::getApplicationContext()->isProduction()) {
+                $extPath = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extPath('sentry_client');
+                require_once $extPath . 'Classes/ClientProvider.php';
+                \Iresults\SentryClient\ClientProvider::createClient();
+
+                $GLOBALS['TYPO3_CONF_VARS']['SYS']['debugExceptionHandler'] = \Iresults\SentryClient\DebugExceptionHandler::class;
+                $GLOBALS['TYPO3_CONF_VARS']['SYS']['productionExceptionHandler'] = \Iresults\SentryClient\ProductionExceptionHandler::class;
+                $GLOBALS['TYPO3_CONF_VARS']['SYS']['errorHandler'] = \Iresults\SentryClient\DebugExceptionHandler::class;
+
+
+//                $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects']['TYPO3\\CMS\\Frontend\\ContentObject\\Exception\\ProductionExceptionHandler'] = array(
+//                    'className' => \Iresults\SentryClient\DebugExceptionHandler::class,
+//                );
+//                $GLOBALS['TYPO3_CONF_VARS']['SYS']['Objects']['TYPO3\\CMS\\Frontend\\ContentObject\\Exception\\DebugExceptionHandler'] = array(
+//                    'className' => \Iresults\SentryClient\DebugExceptionHandler::class,
+//                );
+            }
+        }
+    }
+);
