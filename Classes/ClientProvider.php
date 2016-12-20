@@ -55,12 +55,11 @@ class ClientProvider
             return false;
         }
 
-        $configuration = self::getConfiguration();
-
         if ('' === static::getDsn()) {
             return false;
         }
 
+        $configuration = self::getConfiguration();
         $productionOnly = isset($configuration['productionOnly']) && (bool)$configuration['productionOnly'] === true;
         if (!$productionOnly || GeneralUtility::getApplicationContext()->isProduction()) {
             return true;
