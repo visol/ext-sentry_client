@@ -7,24 +7,75 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 class ClientProvider
 {
     /**
-     * @param null $dsn
+     * @var \Raven_Client
+     */
+    private static $sharedClient;
+
+    /**
+     * Returns the shared Raven client
+     *
      * @return null|\Raven_Client
      */
-    public static function createClient($dsn = null)
+    public static function getSharedClient()
+    {
+        if (!static::isEnabled()) {
+            return null;
+        }
+        if (!static::$sharedClient) {
+            static::$sharedClient = static::createClient();
+        }
+
+        return static::$sharedClient;
+    }
+
+    /**
+     * Returns if a shared Raven client was already created
+     *
+     * @return bool
+     */
+    public static function hasSharedClient()
+    {
+        return null !== static::$sharedClient;
+    }
+
+    /**
+     * Returns if the error handling is enabled
+     *
+     * @return bool
+     */
+    public static function isEnabled()
+    {
+        if (TYPO3_MODE !== 'FE') {
+            return false;
+        }
+
+        $configuration = self::getConfiguration();
+
+        if ('' === static::getDsn()) {
+            return false;
+        }
+
+        $productionOnly = isset($configuration['productionOnly']) && (bool)$configuration['productionOnly'] === true;
+        if (!$productionOnly || GeneralUtility::getApplicationContext()->isProduction()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return null|\Raven_Client
+     */
+    private static function createClient()
     {
         if (static::loadLibrary()) {
-            if (!$dsn) {
-                $dsn = static::getDsn();
-            }
-            $client = new \Raven_Client($dsn);
+            $client = new \Raven_Client(static::getDsn(), self::getClientOptions());
             $client->user_context(static::getUserContext());
             $client->tags_context(static::getTagsContext());
 
-            $errorHandler = new \Raven_ErrorHandler($client, true, static::getErrorMask());
-            $errorHandler->registerExceptionHandler();
-            $errorHandler->registerShutdownFunction();
-
             return $client;
+        } else {
+            static::log('Could not load library', GeneralUtility::SYSLOG_SEVERITY_WARNING);
         }
 
         return null;
@@ -37,14 +88,13 @@ class ClientProvider
      */
     public static function getDsn()
     {
-        if (isset($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['sentry_client'])) {
-            $configuration = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['sentry_client']);
-            if ($configuration && isset($configuration['dsn'])) {
-                return trim($configuration['dsn']);
-            }
+        if (isset($_SERVER['SENTRY_DSN']) && trim($_SERVER['SENTRY_DSN'])) {
+            return trim($_SERVER['SENTRY_DSN']);
         }
 
-        return '';
+        $configuration = self::getConfiguration();
+
+        return (is_array($configuration) && isset($configuration['dsn'])) ? trim($configuration['dsn']) : '';
     }
 
     /**
@@ -52,7 +102,7 @@ class ClientProvider
      */
     private static function getErrorMask()
     {
-        return intval($GLOBALS['TYPO3_CONF_VARS']['SYS']['errorHandlerErrors']);
+        return intval($GLOBALS['TYPO3_CONF_VARS']['SYS']['exceptionalErrors']);
     }
 
     /**
@@ -60,42 +110,22 @@ class ClientProvider
      */
     private static function getUserContext()
     {
-        $userContext = array();
-        switch (TYPO3_MODE) {
-            case 'FE':
-                if (isset($GLOBALS['TSFE']) && $GLOBALS['TSFE']->loginUser === true) {
-                    $user = $GLOBALS['TSFE']->fe_user->user;
-                    if (isset($user['username'])) {
-                        $userContext['username'] = $user['username'];
-                    }
-                    if (isset($user['email'])) {
-                        $userContext['email'] = $user['email'];
-                    }
-                }
-                break;
-            case 'BE':
-                if (isset($GLOBALS['BE_USER']) && isset($GLOBALS['BE_USER']->user)) {
-                    $user = $GLOBALS['BE_USER']->user;
-                    if (isset($user['username'])) {
-                        $userContext['username'] = $user['username'];
-                    }
-
-                    if (isset($user['email'])) {
-                        $userContext['email'] = $user['email'];
-                    }
-                }
-                break;
+        if (TYPO3_MODE === 'BE') {
+            return self::getBackendUserInformation();
+        } elseif (TYPO3_MODE === 'FE') {
+            return self::getFrontendUserInformation();
         }
 
-        return $userContext;
+        return [];
     }
 
     /**
      * @return array
      */
-    private static function getTagsContext(): array
+    private static function getTagsContext()
     {
         $applicationContext = GeneralUtility::getApplicationContext();
+        $backendUser = static::getBackendUserInformation();
 
         $context = array(
             'typo3_version'            => TYPO3_version,
@@ -103,6 +133,7 @@ class ClientProvider
             'php_version'              => phpversion(),
             'application_context_name' => (string)$applicationContext,
             'application_context'      => $applicationContext->isProduction() === true ? 'Production' : 'Development',
+            'backend_user'             => $backendUser ? ($backendUser['username'] . ' <' . $backendUser['email'] . '>') : 'none',
         );
 
         return $context;
@@ -119,15 +150,92 @@ class ClientProvider
         if (class_exists('Raven_Client')) {
             return true;
         }
+
         if (ExtensionManagementUtility::isLoaded('cundd_composer')) {
             \Cundd\CunddComposer\Autoloader::register();
         }
-        if (file_exists($extensionBase . '/vendor/raven/lib/Raven')) {
-            require_once($extensionBase . '/vendor/raven/lib/Raven/Autoloader.php');
-        } elseif (file_exists($extensionBase . '/vendor/sentry/sentry/lib/Raven/Autoloader.php')) {
+        if (file_exists($extensionBase . '/vendor/sentry/sentry/lib/Raven/Autoloader.php')) {
             require_once($extensionBase . '/vendor/sentry/sentry/lib/Raven/Autoloader.php');
+        } elseif (file_exists($extensionBase . '/vendor/raven/lib/Raven')) {
+            require_once($extensionBase . '/vendor/raven/lib/Raven/Autoloader.php');
         }
 
         return class_exists('Raven_Client');
+    }
+
+    /**
+     * @return array
+     */
+    private static function getClientOptions()
+    {
+        $clientOptions = array(
+            'error_types'                         => static::getErrorMask(),
+            'install_default_breadcrumb_handlers' => false,
+        );
+        if (isset($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyServer'])) {
+            $clientOptions['http_proxy'] = $GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyServer'];
+        }
+
+        return $clientOptions;
+    }
+
+    /**
+     * @param string $message
+     * @param int    $severity
+     */
+    private static function log($message, $severity)
+    {
+        GeneralUtility::sysLog($message, 'sentry_client', $severity);
+    }
+
+    /**
+     * @return array
+     */
+    private static function getConfiguration()
+    {
+        $confVars = $GLOBALS['TYPO3_CONF_VARS'];
+
+        if (isset($confVars['EXT'])
+            && isset($confVars['EXT']['extConf'])
+            && isset($confVars['EXT']['extConf']['sentry_client'])
+        ) {
+            return (array)@unserialize($confVars['EXT']['extConf']['sentry_client']);
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array
+     */
+    private static function getBackendUserInformation()
+    {
+        if (isset($GLOBALS['BE_USER']) && isset($GLOBALS['BE_USER']->user)) {
+            $user = $GLOBALS['BE_USER']->user;
+
+            return [
+                'username' => isset($user['username']) ? $user['username'] : '',
+                'email'    => isset($user['email']) ? $user['email'] : '',
+            ];
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array
+     */
+    private static function getFrontendUserInformation()
+    {
+        if (isset($GLOBALS['TSFE']) && $GLOBALS['TSFE']->loginUser === true) {
+            $user = $GLOBALS['TSFE']->fe_user->user;
+
+            return [
+                'username' => isset($user['username']) ? isset($user['username']) : '',
+                'email'    => isset($user['email']) ? isset($user['email']) : '',
+            ];
+        }
+
+        return [];
     }
 }
