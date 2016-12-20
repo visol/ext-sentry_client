@@ -67,11 +67,8 @@ class ErrorHandler extends \TYPO3\CMS\Core\Error\ErrorHandler
                 $errorFile,
                 $errorLine
             );
-            $exception = new \Exception($message, 1);
-            $client = ClientProvider::getSharedClient();
-            if ($client) {
-                $client->captureException($exception);
-            }
+            $exception = new \ErrorException($message, $errorLevel);
+            ClientProvider::captureException($exception);
         }
     }
 }

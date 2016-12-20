@@ -21,10 +21,7 @@ class ProductionExceptionHandler extends \TYPO3\CMS\Core\Error\ProductionExcepti
      */
     public function handleException($exception)
     {
-        $client = ClientProvider::getSharedClient();
-        if ($client) {
-            $client->captureException($exception);
-        }
+        ClientProvider::captureException($exception);
 
         parent::handleException($exception);
     }

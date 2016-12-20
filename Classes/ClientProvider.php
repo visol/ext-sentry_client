@@ -12,20 +12,26 @@ class ClientProvider
     private static $sharedClient;
 
     /**
-     * Returns the shared Raven client
+     * Log an exception to sentry
      *
-     * @return null|\Raven_Client
+     * @param \Exception $exception The Exception object.
+     * @param array      $data      Additional attributes to pass with this event (see Sentry docs).
      */
-    public static function getSharedClient()
+    public static function captureException($exception, $data = null)
     {
-        if (!static::isEnabled()) {
-            return null;
-        }
-        if (!static::$sharedClient) {
-            static::$sharedClient = static::createClient();
+        if (null === $data) {
+            $data = [
+                'extra' => array(
+                    'backend_user' => self::getBackendUserAddress(),
+                    'client_ip'    => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '',
+                ),
+            ];
         }
 
-        return static::$sharedClient;
+        $client = static::getSharedClient();
+        if ($client) {
+            $client->captureException($exception, $data);
+        }
     }
 
     /**
@@ -61,6 +67,23 @@ class ClientProvider
         }
 
         return false;
+    }
+
+    /**
+     * Returns the shared Raven client
+     *
+     * @return null|\Raven_Client
+     */
+    private static function getSharedClient()
+    {
+        if (!static::isEnabled()) {
+            return null;
+        }
+        if (!static::$sharedClient) {
+            static::$sharedClient = static::createClient();
+        }
+
+        return static::$sharedClient;
     }
 
     /**
@@ -124,19 +147,12 @@ class ClientProvider
      */
     private static function getTagsContext()
     {
-        $applicationContext = GeneralUtility::getApplicationContext();
-        $backendUser = static::getBackendUserInformation();
-
-        $context = array(
-            'typo3_version'            => TYPO3_version,
-            'typo3_mode'               => TYPO3_MODE,
-            'php_version'              => phpversion(),
-            'application_context_name' => (string)$applicationContext,
-            'application_context'      => $applicationContext->isProduction() === true ? 'Production' : 'Development',
-            'backend_user'             => $backendUser ? ($backendUser['username'] . ' <' . $backendUser['email'] . '>') : 'none',
+        return array(
+            'typo3_version'       => TYPO3_version,
+            'typo3_mode'          => TYPO3_MODE,
+            'php_version'         => phpversion(),
+            'application_context' => (string)GeneralUtility::getApplicationContext(),
         );
-
-        return $context;
     }
 
     /**
@@ -220,6 +236,20 @@ class ClientProvider
         }
 
         return [];
+    }
+
+    /**
+     * @return string
+     */
+    private static function getBackendUserAddress()
+    {
+        $backendUser = static::getBackendUserInformation();
+
+        if (!$backendUser) {
+            return 'none';
+        }
+
+        return ($backendUser['username'] . ' <' . $backendUser['email'] . '>');
     }
 
     /**

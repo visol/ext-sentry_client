@@ -21,10 +21,7 @@ class DebugExceptionHandler extends \TYPO3\CMS\Core\Error\DebugExceptionHandler
      */
     public function handleException($exception)
     {
-        $client = ClientProvider::getSharedClient();
-        if ($client) {
-            $client->captureException($exception);
-        }
+        ClientProvider::captureException($exception);
 
         parent::handleException($exception);
     }
