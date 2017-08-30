@@ -35,6 +35,23 @@ class ClientProvider
     }
 
     /**
+     * Log a message to sentry
+     *
+     * @param $message
+     * @param array $params
+     * @param array $level_or_options
+     * @param bool $stack
+     * @param null $vars
+     */
+    public static function captureMessage($message, $params = array(), $level_or_options = array(), $stack = false, $vars = null)
+    {
+        $client = static::getSharedClient();
+        if ($client) {
+            $client->captureMessage($message, $params, $level_or_options, $stack, $vars);
+        }
+    }
+    
+    /**
      * Returns if a shared Raven client was already created
      *
      * @return bool
