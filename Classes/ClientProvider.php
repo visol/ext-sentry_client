@@ -50,7 +50,7 @@ class ClientProvider
             $client->captureMessage($message, $params, $level_or_options, $stack, $vars);
         }
     }
-    
+
     /**
      * Returns if a shared Raven client was already created
      *
@@ -127,13 +127,20 @@ class ClientProvider
      */
     public static function getDsn()
     {
-        if (isset($_SERVER['SENTRY_DSN']) && trim($_SERVER['SENTRY_DSN'])) {
-            return trim($_SERVER['SENTRY_DSN']);
-        }
-
+        $dsn = ''; // default return
         $configuration = self::getConfiguration();
 
-        return (is_array($configuration) && isset($configuration['dsn'])) ? trim($configuration['dsn']) : '';
+        if (!empty($_SERVER['SENTRY_DSN'])) {
+            $dsn = $_SERVER['SENTRY_DSN'];
+
+        } elseif (!empty($GLOBALS['TYPO3_CONF_VARS']['LOG']['Sentry']['dsn'])) {
+            $dsn = $GLOBALS['TYPO3_CONF_VARS']['LOG']['Sentry']['dsn'];
+
+        } elseif (!empty($configuration['dsn'])) {
+            $dsn = $configuration['dsn'];
+        }
+
+        return trim((string)$dsn);
     }
 
     /**
@@ -231,7 +238,7 @@ class ClientProvider
             && isset($confVars['EXT']['extConf'])
             && isset($confVars['EXT']['extConf']['sentry_client'])
         ) {
-            return (array)@unserialize($confVars['EXT']['extConf']['sentry_client']);
+            return (array)@unserialize($confVars['EXT']['extConf']['sentry_client'], '');
         }
 
         return [];

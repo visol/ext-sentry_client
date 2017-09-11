@@ -29,6 +29,26 @@ Configuration
 
 Set the dsn (e.g. `http://public_key:secret_key@your-sentry-server.com/project-id`) in the `Extension Manager`.
 
+Alternatively, we can also define - and override - the DSN by setting
+a global variable environment. This could be useful when using different Application Context.
+
+```
+SetEnv SENTRY_DSN http://public_key:secret_key@your-sentry-server.com/project-id
+```
+
+The same could be achieved via PHP configuration. Consider the following lines:
+
+ ```php
+if ((string)\TYPO3\CMS\Core\Utility\GeneralUtility::getApplicationContext() === 'Development/Foo') {
+    $GLOBALS['TYPO3_CONF_VARS']['LOG']['Sentry']['dsn'] = 'http://public_key:secret_key@your-sentry-server.com/project-id';
+}
+```
+
+To retrieve the DNS value, the following priority will be applied:
+
+1. The global environment variable,
+2. PHP configuration,
+3. Finally, the configuration from the Extension Manager. 
 
 Development
 -----------
