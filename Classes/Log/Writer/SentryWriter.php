@@ -43,7 +43,7 @@ class SentryWriter extends AbstractWriter
      * @return WriterInterface $this
      * @throws \RuntimeException
      */
-    public function writeLog(LogRecord $record): WriterInterface
+    public function writeLog(LogRecord $record)
     {
         $data = '';
         $recordData = $record->getData();
