@@ -13,10 +13,12 @@ namespace Iresults\SentryClient\Log\Writer;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
 use Iresults\SentryClient\ClientProvider;
 use TYPO3\CMS\Core\Log\LogLevel;
 use TYPO3\CMS\Core\Log\LogRecord;
 use TYPO3\CMS\Core\Log\Writer\AbstractWriter;
+use TYPO3\CMS\Core\Log\Writer\WriterInterface;
 
 /**
  * Log writer that sends the log records to a sentry server
@@ -38,10 +40,10 @@ class SentryWriter extends AbstractWriter
      * Writes the log record
      *
      * @param LogRecord $record Log record
-     * @return \TYPO3\CMS\Core\Log\Writer\WriterInterface $this
+     * @return WriterInterface $this
      * @throws \RuntimeException
      */
-    public function writeLog(LogRecord $record)
+    public function writeLog(LogRecord $record): WriterInterface
     {
         $data = '';
         $recordData = $record->getData();
