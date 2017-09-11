@@ -44,11 +44,11 @@ if ((string)\TYPO3\CMS\Core\Utility\GeneralUtility::getApplicationContext() === 
 }
 ```
 
-To retrieve the DNS value, the following priority will be applied:
+To retrieve the DNS setting, the following priorities will be applied:
 
 1. The global environment variable,
 2. PHP configuration,
-3. Finally, the configuration from the Extension Manager. 
+3. Finally, the value from the Extension Manager. 
 
 Development
 -----------
