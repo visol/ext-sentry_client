@@ -73,7 +73,9 @@ class ClientProvider
      */
     public static function isEnabled()
     {
-        if (TYPO3_MODE !== 'FE') {
+        if (TYPO3_MODE !== 'FE'
+            && TYPO3_MODE !== 'BE'
+        ) {
             return false;
         }
 
