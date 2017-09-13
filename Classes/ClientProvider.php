@@ -47,6 +47,11 @@ class ClientProvider
     {
         $client = static::getSharedClient();
         if ($client) {
+            if (PATH_site) {
+                $client->setAppPath(PATH_site);
+                $client->setExcludedAppPaths([PATH_site . 'typo3conf/ext/sentry_client']);
+            }
+
             $client->captureMessage($message, $params, $level_or_options, $stack, $vars);
         }
     }
