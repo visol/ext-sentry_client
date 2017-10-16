@@ -12,16 +12,16 @@ $EM_CONF[$_EXTKEY] = array (
 	'author' => 'Christoph Lehmann',
 	'author_email' => 'christoph.lehmann@networkteam.com',
 	'author_company' => 'networkteam GmbH',
-	'constraints' => 
+	'constraints' =>
 	array (
-		'depends' => 
+		'depends' =>
 		array (
-			'typo3' => '6.2.0-7.9.99',
+			'typo3' => '6.2.0-8.7.99',
 		),
-		'conflicts' => 
+		'conflicts' =>
 		array (
 		),
-		'suggests' => 
+		'suggests' =>
 		array (
 		),
 	),
