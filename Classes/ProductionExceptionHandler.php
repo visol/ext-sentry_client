@@ -15,11 +15,10 @@ class ProductionExceptionHandler extends \TYPO3\CMS\Core\Error\ProductionExcepti
      * Displays the given exception
      *
      * @param \Exception|\Throwable $exception The exception(PHP 5.x) or throwable(PHP >= 7.0) object.
-     * @TODO #72293 This will change to \Throwable only if we are >= PHP7.0 only
      *
      * @throws \Exception
      */
-    public function handleException($exception)
+    public function handleException(\Throwable $exception)
     {
         ClientProvider::captureException($exception);
 
